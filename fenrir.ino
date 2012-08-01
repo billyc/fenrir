@@ -31,15 +31,14 @@ void setup()                    // run once, when the sketch starts
   }
 
   // do a fancy ringlight dance, to welcome the user
-  for (int j=0; j<4;j++) {
+  for (int j=0; j<3; j++) {
     for (int i=SWITCHES-1; i>=0; i--) {
       digitalWrite(pRingLED + i*2, HIGH);
-      delay(30 - j*5);
+      delay(25); // - j*5);
       digitalWrite(pRingLED + i*2, LOW);
-      delay(80 - j*20);
+      delay(40); // 150 - j*50);
     }
   }
-  // give user time to verify all is well after setup
   delay(500);
 
   // light 'em up!
