@@ -1,12 +1,18 @@
 #define SWITCHES 6
 
-int pFirstSwitch = 40;
-int pFirstRingLED = 41;
-int pFirstRelay = 22;
+// Our brand of relays are on when LOW, off when HIGH.
+#define R_ON 0
+#define R_OFF 1
+
+// Pin numbers for switch 1; subsequent switches MUST be sequential!
+int pSwitch = 40;
+int pRingLED = 41;
+int pRelay = 22;
 
 int val;
 int val2;
 
+// ringState stores the on/off status of the ring LEDs.
 int ringState[SWITCHES];
 
 void setup()                    // run once, when the sketch starts
@@ -15,15 +21,32 @@ void setup()                    // run once, when the sketch starts
 
   // Loop for each of the six switches:
   for (int i=0; i<SWITCHES; i++) {
-    // set pin modes to OUTPUT for all six ring LEDs and Relays
-    pinMode(pFirstRingLED + i*2, OUTPUT);
-    pinMode(pFirstRelay + i*2, OUTPUT);  
+    // setup ring LEDs: output and ready to be pushed
+    pinMode(pRingLED + i*2, OUTPUT);
+    ringState[i] = HIGH;
 
-    // ensure everything is off at startup:
-    digitalWrite(pFirstRelay + i*2, LOW);
-    ringState[i] = LOW;
-    digitalWrite(pFirstRingLED + i*2, ringState[i]);
-  }  
+    // ensure relays are off at startup:
+    digitalWrite(pRelay + i*2, R_OFF);
+    pinMode(pRelay + i*2, OUTPUT);
+  }
+
+  // do a fancy ringlight dance, to welcome the user
+  for (int j=0; j<4;j++) {
+    for (int i=SWITCHES-1; i>=0; i--) {
+      digitalWrite(pRingLED + i*2, HIGH);
+      delay(30 - j*5);
+      digitalWrite(pRingLED + i*2, LOW);
+      delay(80 - j*20);
+    }
+  }
+  // give user time to verify all is well after setup
+  delay(500);
+
+  // light 'em up!
+  for (int i=0; i<SWITCHES; i++) {
+    digitalWrite(pRingLED + i*2, HIGH);
+    delay(100);
+  }
 }
 
 // Infinite Arduino event loop!
@@ -35,18 +58,21 @@ void loop() {
 }
 
 void checkSwitch(int s) {
-  val = digitalRead(pFirstSwitch + s*2);  
+  val = digitalRead(pSwitch + s*2);
+
   if (val==HIGH) {
-    toggleLight(s);
+    toggleRingLED(s);
+    digitalWrite(pRelay + s*2, R_ON);
+  } else {
+    digitalWrite(pRelay + s*2, R_OFF);
   }
-  digitalWrite(pFirstRelay + s*2, val);
 }
 
-void toggleLight(int s) {
+void toggleRingLED(int s) {
     ringState[s] = (ringState[s]==LOW ? HIGH : LOW);
-    digitalWrite(pFirstRingLED + s*2, ringState[s]);
-    Serial.write("Switch!");
-    Serial.print(s+1);
-}
+    digitalWrite(pRingLED + s*2, ringState[s]);
 
+    Serial.write("Switch! ");
+    Serial.println(s+1);
+}
 
