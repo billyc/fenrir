@@ -1,16 +1,16 @@
+// FENRiR -- the giant flaming wolf.
+// Contact: http://sheetmetalalchemist.com
+// --------------------------------------------------------------------
+
+// Note: Any switches higher than POOFERS are SHIFT keys.
 #define SWITCHES 6
 #define POOFERS  4
-// Note: Any switches higher than POOFERS are SHIFT keys.
 
-
-// Our brand of relays are on when LOW, off when HIGH.
-#define R_ON 0
-#define R_OFF 1
-
-#define MOUTH 22
-#define TAIL 26
-#define LEFT 24
-#define RIGHT 28
+// Which relay corresponds to which poofer position:
+#define MOUTH 0
+#define TAIL  2
+#define LEFT  1
+#define RIGHT 3
 
 // Pin numbers for each switch: x2 because Arduino Mega has pins
 // that are two-wide.
@@ -18,24 +18,35 @@ int pSwitch[SWITCHES] =  {40,42,44,46,48,50};
 int pRingLED[SWITCHES] = {41,43,45,47,49,51};
 int pRelay[SWITCHES] =   {22,24,26,28,30,32};
 
+
+// ---- code starts here ----------------------------------------------
+
+// Our brand of relays are on when LOW, off when HIGH.
+#define R_ON 0
+#define R_OFF 1
+
 // ringState stores the on/off status of the ring LEDs.
 // switchState stores the pressed/unpressed status of the switches.
 int ringState[SWITCHES];
 int switchState[SWITCHES];
+
+// timed effects blackout the LED rings; this variable is used to signal that
+// they need to be re-lit after the effect.
+boolean ringsNeedResetting = true;
 
 /** Arduino one-time setup call */
 void setup()                    // run once, when the sketch starts
 {
   Serial.begin(9600);
 
-  // Loop for each of the six switches:
+  // Setup each switch and LED:
   for (int i=0; i<SWITCHES; i++) {
-    // setup ring LEDs: output and ready to be pushed
+    // setup variables for each switch & LED
     pinMode(pRingLED[i], OUTPUT);
     ringState[i] = HIGH;
     switchState[i] = LOW;
 
-    // ensure relays are off at startup:
+    // ensure relays are off at startup: (IMPORTANT! DO NOT CHANGE!)
     digitalWrite(pRelay[i], R_OFF);
     pinMode(pRelay[i], OUTPUT);
   }
@@ -56,7 +67,7 @@ void initializeRingLEDs() {
   }
   delay(500);
 
-  for (int j=0; j<3; j++) {
+  for (int j=0; j<2; j++) {
     for (int i=SWITCHES-1; i>=0; i--) {
       digitalWrite(pRingLED[i], HIGH);
       delay(25); // - j*5);
@@ -64,12 +75,9 @@ void initializeRingLEDs() {
       delay(75); // 150 - j*50);
     }
   }
-  delay(1500);
+  delay(1000);
 
-  for (int i=0; i<SWITCHES; i++) {
-    digitalWrite(pRingLED[i], HIGH);
-    delay(100);
-  }
+  resetRings(HIGH);  
 }
 
 
@@ -83,6 +91,7 @@ void loop() {
 
     // otherwise, just pass the switch state to the poofers.
     } else {
+        resetRings(HIGH);
         for (int i=0; i<POOFERS; i++) {
             digitalWrite(pRelay[i], switchState[i]==HIGH ? R_ON : R_OFF);
         }
@@ -122,7 +131,7 @@ boolean processShiftKeys() {
     if (switchState[4]==LOW && switchState[5]==LOW) {
         return false;
     }
-
+    
     // Both SHIFTS pressed!
     if (switchState[4]==HIGH && switchState[5]==HIGH) {
         bothShiftsPressed();
@@ -155,68 +164,98 @@ void bothShiftsPressed() {
   performMouthBackSides(1);
 }
 
+/** Set poofer *and* ring LED to specified state */
+void setPoofer(int which, int state) {
+    digitalWrite(pRelay[which], state);
+    digitalWrite(pRingLED[which], state==R_ON ? HIGH : LOW);
+}
+
+/** Dim or light up all the rings, if necessary */
+void resetRings(int state) {
+  if (state==LOW) {
+    for (int i=0; i<SWITCHES; i++) {
+      digitalWrite(pRingLED[i], LOW);
+    }
+    ringsNeedResetting = true;
+    
+  } else if (ringsNeedResetting) {    
+    delay(400);
+    for (int i=0; i<SWITCHES; i++) {
+      digitalWrite(pRingLED[i], HIGH);
+      delay(80);
+    }
+    ringsNeedResetting = false;
+  }
+}
+
 // ############## Fancy Effects ############
-//
 
 void clockwise() {
-  digitalWrite(MOUTH,R_ON);
+  resetRings(LOW);
+  
+  setPoofer(MOUTH,R_ON);
   delay(200);
-  digitalWrite(MOUTH,R_OFF);
+  setPoofer(MOUTH,R_OFF);
 
-  digitalWrite(RIGHT,R_ON);
+  setPoofer(RIGHT,R_ON);
   delay(200);
-  digitalWrite(RIGHT,R_OFF);
+  setPoofer(RIGHT,R_OFF);
 
-  digitalWrite(TAIL,R_ON);
+  setPoofer(TAIL,R_ON);
   delay(200);
-  digitalWrite(TAIL,R_OFF);
+  setPoofer(TAIL,R_OFF);
 
-  digitalWrite(LEFT,R_ON);
+  setPoofer(LEFT,R_ON);
   delay(200);
-  digitalWrite(LEFT,R_OFF);  
+  setPoofer(LEFT,R_OFF);  
 }
 
 void counterClockwise() {
-  digitalWrite(MOUTH,R_ON);
-  delay(200);
-  digitalWrite(MOUTH,R_OFF);
+  resetRings(LOW);
 
-  digitalWrite(LEFT,R_ON);
+  setPoofer(MOUTH,R_ON);
   delay(200);
-  digitalWrite(LEFT,R_OFF);  
+  setPoofer(MOUTH,R_OFF);
 
-  digitalWrite(TAIL,R_ON);
+  setPoofer(LEFT,R_ON);
   delay(200);
-  digitalWrite(TAIL,R_OFF);
+  setPoofer(LEFT,R_OFF);  
 
-  digitalWrite(RIGHT,R_ON);
+  setPoofer(TAIL,R_ON);
   delay(200);
-  digitalWrite(RIGHT,R_OFF);
+  setPoofer(TAIL,R_OFF);
+
+  setPoofer(RIGHT,R_ON);
+  delay(200);
+  setPoofer(RIGHT,R_OFF);
 }
 
 
 void performMouthBackSides(int reps) {
+    resetRings(LOW);
     for (int z=0; z<reps; z++) {
         
-        digitalWrite(MOUTH,R_ON);
+        setPoofer(MOUTH,R_ON);
         delay(250);
-        digitalWrite(MOUTH,R_OFF);
+        setPoofer(MOUTH,R_OFF);
 
-        digitalWrite(TAIL,R_ON);
+        setPoofer(TAIL,R_ON);
         delay(250);
-        digitalWrite(TAIL,R_OFF);
+        setPoofer(TAIL,R_OFF);
 
-        digitalWrite(LEFT,R_ON);
-        digitalWrite(RIGHT,R_ON);
+        setPoofer(LEFT,R_ON);
+        setPoofer(RIGHT,R_ON);
         delay(400);
-        blackout();
-        delay(500);
+        setPoofer(LEFT,R_OFF);
+        setPoofer(RIGHT,R_OFF);
 
+        delay(500);
     }
 }
 
 void blackout() {
     for (int i=0; i<POOFERS; i++) {
-        digitalWrite(pRelay[i],R_OFF);
+        setPoofer(pRelay[i], R_OFF);
     }
 }
+
