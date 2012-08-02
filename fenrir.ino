@@ -30,18 +30,37 @@ void setup()                    // run once, when the sketch starts
     pinMode(pRelay + i*2, OUTPUT);
   }
 
-  // do a fancy ringlight dance, to welcome the user
+  doBootAnimation();
+}
+
+/** Entirely superfluous blinky lights at startup. */
+void doBootAnimation() {
+
+  // quick double flash at startup
+  for (int j=0; j<2; j++) {
+    for (int i=0; i<SWITCHES; i++) {
+      digitalWrite(pRingLED + i*2, HIGH);
+    }
+    delay(100);
+    for (int i=0; i<SWITCHES; i++) {
+      digitalWrite(pRingLED + i*2, LOW);
+    }
+    delay(100);
+  }
+  delay(500);
+
+  // spinny blinky
   for (int j=0; j<3; j++) {
     for (int i=SWITCHES-1; i>=0; i--) {
       digitalWrite(pRingLED + i*2, HIGH);
       delay(25); // - j*5);
       digitalWrite(pRingLED + i*2, LOW);
-      delay(40); // 150 - j*50);
+      delay(75); // 150 - j*50);
     }
   }
-  delay(500);
+  delay(1500);
 
-  // light 'em up!
+  // light 'em all up at the end
   for (int i=0; i<SWITCHES; i++) {
     digitalWrite(pRingLED + i*2, HIGH);
     delay(100);
