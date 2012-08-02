@@ -4,10 +4,11 @@
 #define R_ON 0
 #define R_OFF 1
 
-// Pin numbers for switch 1; subsequent switches MUST be sequential!
-int pSwitch = 40;
-int pRingLED = 41;
-int pRelay = 22;
+// Pin numbers for each switch: x2 because Arduino Mega has pins
+// that are two-wide.
+int pSwitch[SWITCHES] =  {40,42,44,46,48,50};
+int pRingLED[SWITCHES] = {41,43,45,47,49,51};
+int pRelay[SWITCHES] =   {22,24,26,28,30,32};
 
 int val;
 int val2;
@@ -22,75 +23,75 @@ void setup()                    // run once, when the sketch starts
   // Loop for each of the six switches:
   for (int i=0; i<SWITCHES; i++) {
     // setup ring LEDs: output and ready to be pushed
-    pinMode(pRingLED + i*2, OUTPUT);
+    pinMode(pRingLED[i], OUTPUT);
     ringState[i] = HIGH;
 
     // ensure relays are off at startup:
-    digitalWrite(pRelay + i*2, R_OFF);
-    pinMode(pRelay + i*2, OUTPUT);
+    digitalWrite(pRelay[i], R_OFF);
+    pinMode(pRelay[i], OUTPUT);
   }
 
-  doBootAnimation();
+  initializeRingLEDs();
 }
 
-/** Entirely superfluous blinky lights at startup. */
-void doBootAnimation() {
+void initializeRingLEDs() {
 
-  // quick double flash at startup
   for (int j=0; j<2; j++) {
     for (int i=0; i<SWITCHES; i++) {
-      digitalWrite(pRingLED + i*2, HIGH);
+      digitalWrite(pRingLED[i], HIGH);
     }
     delay(100);
     for (int i=0; i<SWITCHES; i++) {
-      digitalWrite(pRingLED + i*2, LOW);
+      digitalWrite(pRingLED[i], LOW);
     }
     delay(100);
   }
   delay(500);
 
-  // spinny blinky
   for (int j=0; j<3; j++) {
     for (int i=SWITCHES-1; i>=0; i--) {
-      digitalWrite(pRingLED + i*2, HIGH);
+      digitalWrite(pRingLED[i], HIGH);
       delay(25); // - j*5);
-      digitalWrite(pRingLED + i*2, LOW);
+      digitalWrite(pRingLED[i], LOW);
       delay(75); // 150 - j*50);
     }
   }
   delay(1500);
 
-  // light 'em all up at the end
   for (int i=0; i<SWITCHES; i++) {
-    digitalWrite(pRingLED + i*2, HIGH);
+    digitalWrite(pRingLED[i], HIGH);
     delay(100);
   }
 }
 
-// Infinite Arduino event loop!
+
+// Main Arduino Event Loop
 void loop() {
   for (int s=0; s<SWITCHES; s++) {
     checkSwitch(s);
   }
-  delay(250);
+  delay(10);
 }
 
+
 void checkSwitch(int s) {
-  val = digitalRead(pSwitch + s*2);
+  val = digitalRead(pSwitch[s]);
 
   if (val==HIGH) {
     toggleRingLED(s);
-    digitalWrite(pRelay + s*2, R_ON);
+    digitalWrite(pRelay[s], R_ON);
   } else {
-    digitalWrite(pRelay + s*2, R_OFF);
+    digitalWrite(pRelay[s], R_OFF);
   }
 }
 
+
 void toggleRingLED(int s) {
     ringState[s] = (ringState[s]==LOW ? HIGH : LOW);
-    digitalWrite(pRingLED + s*2, ringState[s]);
+    digitalWrite(pRingLED[s], ringState[s]);
 
     Serial.write("Switch! ");
     Serial.println(s+1);
 }
+
 
