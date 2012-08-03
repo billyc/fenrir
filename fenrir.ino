@@ -12,12 +12,19 @@
 #define LEFT  1
 #define RIGHT 3
 
-// Pin numbers for each switch: x2 because Arduino Mega has pins
-// that are two-wide.
+// Joystick directions
+#define J_FIRE 0
+#define J_UP 1
+#define J_DOWN 2
+#define J_LEFT 3
+#define J_RIGHT 4
+
+// Pin numbers for each switch: count by two because Arduino Mega
+// has headers that are two-wide.
 int pSwitch[SWITCHES] =  {40,42,44,46,48,50};
 int pRingLED[SWITCHES] = {41,43,45,47,49,51};
 int pRelay[SWITCHES] =   {22,24,26,28,30,32};
-
+int pJoystick[5] =       {8,9,10,11,12};
 
 // ---- code starts here ----------------------------------------------
 
@@ -29,6 +36,8 @@ int pRelay[SWITCHES] =   {22,24,26,28,30,32};
 // switchState stores the pressed/unpressed status of the switches.
 int ringState[SWITCHES];
 int switchState[SWITCHES];
+
+int poofSpinner = 0;
 
 // timed effects blackout the LED rings; this variable is used to signal that
 // they need to be re-lit after the effect.
@@ -77,7 +86,7 @@ void initializeRingLEDs() {
   }
   delay(1000);
 
-  resetRings(HIGH);  
+  resetRings(HIGH);
 }
 
 
@@ -89,14 +98,96 @@ void loop() {
     if (processShiftKeys()==true) {
         delay(100);
 
-    // otherwise, just pass the switch state to the poofers.
+    } else if (handleJoystick()==true) {
+      // don't do anything -- especially don't reset rings!
     } else {
+
+        // otherwise, just pass the switch state to the poofers.
         resetRings(HIGH);
         for (int i=0; i<POOFERS; i++) {
             digitalWrite(pRelay[i], switchState[i]==HIGH ? R_ON : R_OFF);
+            digitalWrite(pRingLED[i], 1-switchState[i]);
         }
     }
 }
+
+/** Atari Joysticks require pull-up HIGH value, and are LOW when activated. */
+void setupJoystick() {
+    for (int i=0; i<5; i++) {
+        pinMode(pJoystick[i],INPUT);
+        digitalWrite(pJoystick[i],HIGH);
+    }
+}
+
+boolean handleJoystick() {
+    for (int j=0;j<5;j++) {
+       digitalWrite(pJoystick[j],HIGH);
+    }
+
+    // only do stuff if fire button is held down
+    if (digitalRead(pJoystick[J_FIRE])==HIGH) {
+       resetRings(HIGH);
+       return false;
+    }
+
+    if (digitalRead(pJoystick[J_LEFT])==LOW) {
+
+        ringsNeedResetting = true;
+        blackout();
+
+        poofSpinner++;
+        poofSpinner %= 4;
+
+        setPoofer(poofSpinner,R_ON);
+        delay(100);
+        setPoofer(poofSpinner,R_OFF);
+        delay(50);
+
+        return true;
+
+    } else if (digitalRead(pJoystick[J_RIGHT])==LOW) {
+
+        ringsNeedResetting = true;
+        blackout();
+
+        poofSpinner--;
+        if (poofSpinner<0) poofSpinner += POOFERS;
+
+        setPoofer(poofSpinner,R_ON);
+        delay(100);
+        setPoofer(poofSpinner,R_OFF);
+        delay(50);
+        return true;
+
+    } else if (digitalRead(pJoystick[J_UP])==LOW) {
+
+        ringsNeedResetting = true;
+        blackout();
+
+        setPoofer(MOUTH,R_ON);
+        delay(100);
+        setPoofer(MOUTH,R_OFF);
+        delay(50);
+        return true;
+
+    } else if (digitalRead(pJoystick[J_DOWN])==LOW) {
+
+        ringsNeedResetting = true;
+        blackout();
+
+        setPoofer(TAIL,R_OFF);
+        setPoofer(LEFT,R_ON);
+        setPoofer(RIGHT,R_ON);
+        delay(100);
+        setPoofer(TAIL,R_ON);
+        setPoofer(LEFT,R_OFF);
+        setPoofer(RIGHT,R_OFF);
+        delay(100);
+        setPoofer(TAIL,R_OFF);
+        return true;
+    }
+}
+
 
 /** Test each switch twice, to avoid debounce problems */
 void updateSwitchStatuses() {
@@ -131,7 +222,7 @@ boolean processShiftKeys() {
     if (switchState[4]==LOW && switchState[5]==LOW) {
         return false;
     }
-    
+
     // Both SHIFTS pressed!
     if (switchState[4]==HIGH && switchState[5]==HIGH) {
         bothShiftsPressed();
@@ -177,8 +268,8 @@ void resetRings(int state) {
       digitalWrite(pRingLED[i], LOW);
     }
     ringsNeedResetting = true;
-    
-  } else if (ringsNeedResetting) {    
+
+  } else if (ringsNeedResetting) {
     delay(400);
     for (int i=0; i<SWITCHES; i++) {
       digitalWrite(pRingLED[i], HIGH);
@@ -192,7 +283,7 @@ void resetRings(int state) {
 
 void clockwise() {
   resetRings(LOW);
-  
+
   setPoofer(MOUTH,R_ON);
   delay(200);
   setPoofer(MOUTH,R_OFF);
@@ -207,7 +298,7 @@ void clockwise() {
 
   setPoofer(LEFT,R_ON);
   delay(200);
-  setPoofer(LEFT,R_OFF);  
+  setPoofer(LEFT,R_OFF);
 }
 
 void counterClockwise() {
@@ -219,7 +310,7 @@ void counterClockwise() {
 
   setPoofer(LEFT,R_ON);
   delay(200);
-  setPoofer(LEFT,R_OFF);  
+  setPoofer(LEFT,R_OFF);
 
   setPoofer(TAIL,R_ON);
   delay(200);
@@ -234,7 +325,7 @@ void counterClockwise() {
 void performMouthBackSides(int reps) {
     resetRings(LOW);
     for (int z=0; z<reps; z++) {
-        
+
         setPoofer(MOUTH,R_ON);
         delay(250);
         setPoofer(MOUTH,R_OFF);
@@ -255,7 +346,7 @@ void performMouthBackSides(int reps) {
 
 void blackout() {
     for (int i=0; i<POOFERS; i++) {
-        setPoofer(pRelay[i], R_OFF);
+        setPoofer(i, R_OFF);
     }
 }
 
